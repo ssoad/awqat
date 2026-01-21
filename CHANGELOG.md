@@ -1,3 +1,7 @@
+## 0.1.1
+
+* Fixed: Added JitPack and Sonatype repositories for Adhan-Kotlin dependency resolution on Android
+
 ## 0.1.0
 
 * Initial release
