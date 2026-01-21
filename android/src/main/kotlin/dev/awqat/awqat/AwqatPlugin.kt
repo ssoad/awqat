@@ -57,6 +57,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
             "cancelReminder" -> handleCancelReminder(call, result)
             "requestPermission" -> handleRequestPermission(result)
             "hasPermission" -> handleHasPermission(result)
+            "showTestNotification" -> handleShowTestNotification(call, result)
+            "scheduleTestReminder" -> handleScheduleTestReminder(call, result)
             else -> result.notImplemented()
         }
     }
@@ -174,6 +176,57 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
     private fun handleRequestPermission(result: Result) {
         val notificationManager = NotificationManagerCompat.from(context)
         result.success(notificationManager.areNotificationsEnabled())
+    }
+    
+    // NEW: Handle test notification
+    private fun handleShowTestNotification(call: MethodCall, result: Result) {
+        val title = call.argument<String>("title") ?: "Test Notification"
+        val body = call.argument<String>("body") ?: "This is a test prayer notification"
+        
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            putExtra("notification_id", 999)
+            putExtra("prayer_name", "Test")
+            putExtra("title", title)
+            putExtra("body", body)
+        }
+        
+        context.sendBroadcast(intent)
+        result.success(true)
+    }
+
+    private fun handleScheduleTestReminder(call: MethodCall, result: Result) {
+        val seconds = call.argument<Int>("seconds") ?: 60
+        val title = call.argument<String>("title") ?: "Scheduled Test"
+        val body = call.argument<String>("body") ?: "This notification was scheduled $seconds seconds ago"
+        
+        val triggerTime = System.currentTimeMillis() + (seconds * 1000L)
+        val notificationId = 888
+        
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            putExtra("notification_id", notificationId)
+            putExtra("prayer_name", "Test Scheduled")
+            putExtra("title", title)
+            putExtra("body", body)
+        }
+        
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, notificationId, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            }
+        } else {
+            alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
+        }
+        
+        result.success(true)
     }
     
     private fun handleHasPermission(result: Result) {

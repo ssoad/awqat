@@ -198,6 +198,34 @@ class Awqat {
     }
   }
 
+  /// Show an immediate test notification.
+  static Future<void> showTestNotification({
+    String? title,
+    String? body,
+  }) async {
+    try {
+      await _channel.invokeMethod('showTestNotification', {
+        'title': title,
+        'body': body,
+      });
+    } on PlatformException catch (e) {
+      throw AwqatException('Failed to show test notification: ${e.message}');
+    }
+  }
+
+  /// Schedule a test notification after [seconds].
+  static Future<void> scheduleTestReminder(
+      {int seconds = 60, String? title}) async {
+    try {
+      await _channel.invokeMethod('scheduleTestReminder', {
+        'seconds': seconds,
+        'title': title,
+      });
+    } on PlatformException catch (e) {
+      throw AwqatException('Failed to schedule test reminder: ${e.message}');
+    }
+  }
+
   static void _ensureInitialized() {
     if (!_isInitialized) {
       throw AwqatException(
