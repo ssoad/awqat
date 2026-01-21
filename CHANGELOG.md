@@ -1,3 +1,9 @@
+## 0.1.3
+
+* Feature: Added `showTestNotification()` for immediate notification testing
+* Feature: Added `scheduleTestReminder()` for testing delayed notifications (approx 1 min)
+* Fixed: Android `AlarmReceiver` export status for better reliability
+
 ## 0.1.2
 
 * Fixed: Removed external Adhan-Kotlin dependency, now uses built-in prayer time calculation algorithm
