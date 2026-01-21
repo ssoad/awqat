@@ -1,3 +1,8 @@
+## 0.1.2
+
+* Fixed: Removed external Adhan-Kotlin dependency, now uses built-in prayer time calculation algorithm
+* Fixed: No longer requires JitPack or additional Maven repositories
+
 ## 0.1.1
 
 * Fixed: Added JitPack and Sonatype repositories for Adhan-Kotlin dependency resolution on Android
