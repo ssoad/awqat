@@ -100,6 +100,9 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
     private fun handleScheduleReminders(call: MethodCall, result: Result) {
         try {
             val prayers = call.argument<List<String>>("prayers") ?: listOf()
+            
+            android.util.Log.d("AwqatPlugin", "Scheduling reminders for ${prayers.size} prayers")
+            
             val offsetMinutes = call.argument<Int>("offsetMinutes") ?: 0
             val customTitle = call.argument<String>("title")
             val customBody = call.argument<String>("body")
@@ -141,6 +144,7 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         customBody: String?,
         showImage: Boolean
     ) {
+        android.util.Log.d("AwqatPlugin", "scheduleForDays: Scheduling for next $DAYS_TO_SCHEDULE days")
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val now = System.currentTimeMillis()
         
@@ -272,6 +276,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         val title = call.argument<String>("title") ?: "Scheduled Test"
         val body = call.argument<String>("body") ?: "This notification was scheduled $seconds seconds ago"
         val shouldReschedule = call.argument<Boolean>("should_reschedule") ?: false
+        
+        android.util.Log.d("AwqatPlugin", "Scheduling test alarm for $seconds seconds from now (reschedule: $shouldReschedule)")
         
         val triggerTime = System.currentTimeMillis() + (seconds * 1000L)
         val notificationId = 888

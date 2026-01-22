@@ -1,3 +1,6 @@
+## 0.1.9
+- **Debugging**: Added verbose logs to `AwqatPlugin`, `AlarmReceiver`, and `PrayerScheduler` to verify scheduling via `adb logcat`.
+
 ## 0.1.8
 - **Major Reliability Update**: Native 7-day scheduling for Android.
 - Added automatic re-scheduling after each notification to ensure continuous reminders.

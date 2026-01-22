@@ -18,6 +18,9 @@ class AlarmReceiver : BroadcastReceiver() {
     
     override fun onReceive(context: Context, intent: Intent) {
         val notificationId = intent.getIntExtra("notification_id", 0)
+        
+        android.util.Log.d("AlarmReceiver", "Alarm received! ID: $notificationId")
+        
         val prayerName = intent.getStringExtra("prayer_name") ?: "Prayer"
         val title = intent.getStringExtra("title") ?: "Time for $prayerName"
         val body = intent.getStringExtra("body") ?: "It's time for $prayerName prayer"
