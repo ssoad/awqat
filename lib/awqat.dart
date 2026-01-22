@@ -117,6 +117,7 @@ class Awqat {
     String? title,
     String? body,
     String? sound,
+    bool showImage = true,
   }) async {
     _ensureInitialized();
 
@@ -137,6 +138,7 @@ class Awqat {
         'title': title,
         'body': body,
         'sound': sound,
+        'show_image': showImage,
       });
     } on PlatformException catch (e) {
       throw AwqatException('Failed to schedule reminders: ${e.message}');
@@ -202,11 +204,13 @@ class Awqat {
   static Future<void> showTestNotification({
     String? title,
     String? body,
+    bool showImage = true,
   }) async {
     try {
       await _channel.invokeMethod('showTestNotification', {
         'title': title,
         'body': body,
+        'show_image': showImage,
       });
     } on PlatformException catch (e) {
       throw AwqatException('Failed to show test notification: ${e.message}');
@@ -214,12 +218,16 @@ class Awqat {
   }
 
   /// Schedule a test notification after [seconds].
-  static Future<void> scheduleTestReminder(
-      {int seconds = 60, String? title}) async {
+  static Future<void> scheduleTestReminder({
+    int seconds = 60,
+    String? title,
+    bool showImage = true,
+  }) async {
     try {
       await _channel.invokeMethod('scheduleTestReminder', {
         'seconds': seconds,
         'title': title,
+        'show_image': showImage,
       });
     } on PlatformException catch (e) {
       throw AwqatException('Failed to schedule test reminder: ${e.message}');

@@ -31,12 +31,23 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
     companion object {
         const val CHANNEL_ID = "awqat_prayer_reminders"
         const val CHANNEL_NAME = "Prayer Reminders"
+        const val PREFS_NAME = "awqat_prefs"
         
+        // Base notification IDs for each prayer (Day 0)
         const val NOTIFICATION_ID_FAJR = 1001
         const val NOTIFICATION_ID_DHUHR = 1002
         const val NOTIFICATION_ID_ASR = 1003
         const val NOTIFICATION_ID_MAGHRIB = 1004
         const val NOTIFICATION_ID_ISHA = 1005
+        
+        // Helper to generate unique ID for prayer on a specific day
+        // dayOffset: 0 = today, 1 = tomorrow, etc.
+        fun getNotificationId(prayerId: Int, dayOffset: Int): Int {
+            return prayerId + (dayOffset * 10) // e.g., Fajr Day 2 = 1001 + 20 = 1021
+        }
+        
+        // Max days to schedule ahead
+        const val DAYS_TO_SCHEDULE = 7
     }
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -92,13 +103,55 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
             val offsetMinutes = call.argument<Int>("offsetMinutes") ?: 0
             val customTitle = call.argument<String>("title")
             val customBody = call.argument<String>("body")
+            val showImage = call.argument<Boolean>("show_image") ?: true
             
-            val calendar = Calendar.getInstance()
+            // Persist configuration to SharedPreferences for re-use
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                putFloat("latitude", latitude.toFloat())
+                putFloat("longitude", longitude.toFloat())
+                putString("method", methodId)
+                putString("madhab", madhabId)
+                putString("prayers", prayers.joinToString(","))
+                putInt("offset_minutes", offsetMinutes)
+                putBoolean("reminders_enabled", prayers.isNotEmpty())
+                putBoolean("show_image", showImage)
+                customTitle?.let { putString("custom_title", it) }
+                customBody?.let { putString("custom_body", it) }
+                apply()
+            }
+            
+            // Schedule for next 7 days
+            scheduleForDays(prayers, offsetMinutes, customTitle, customBody, showImage)
+            
+            result.success(true)
+        } catch (e: Exception) {
+            result.error("SCHEDULE_ERROR", e.message, null)
+        }
+    }
+    
+    /**
+     * Schedule prayer reminders for the next [DAYS_TO_SCHEDULE] days.
+     * This method can be called from handleScheduleReminders, AlarmReceiver, or BootReceiver.
+     */
+    private fun scheduleForDays(
+        prayers: List<String>,
+        offsetMinutes: Int,
+        customTitle: String?,
+        customBody: String?,
+        showImage: Boolean
+    ) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val now = System.currentTimeMillis()
+        
+        for (dayOffset in 0 until DAYS_TO_SCHEDULE) {
+            val calendar = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, dayOffset)
+            }
             val times = calculatePrayerTimes(calendar)
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             
             for (prayerStr in prayers) {
-                val (timeMillis, notificationId, prayerName) = when (prayerStr) {
+                val (timeMillis, basePrayerId, prayerName) = when (prayerStr) {
                     "fajr" -> Triple(times["fajr"] as Long, NOTIFICATION_ID_FAJR, "Fajr")
                     "dhuhr" -> Triple(times["dhuhr"] as Long, NOTIFICATION_ID_DHUHR, "Dhuhr")
                     "asr" -> Triple(times["asr"] as Long, NOTIFICATION_ID_ASR, "Asr")
@@ -108,13 +161,21 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
                 }
                 
                 val triggerTime = timeMillis + (offsetMinutes * 60 * 1000L)
-                if (triggerTime <= System.currentTimeMillis()) continue
+                
+                // Skip if in the past
+                if (triggerTime <= now) continue
+                
+                val notificationId = getNotificationId(basePrayerId, dayOffset)
                 
                 val intent = Intent(context, AlarmReceiver::class.java).apply {
                     putExtra("notification_id", notificationId)
                     putExtra("prayer_name", prayerName)
                     putExtra("title", customTitle ?: "Time for $prayerName")
                     putExtra("body", customBody ?: "It's time for $prayerName prayer")
+                    putExtra("should_reschedule", true) // Flag to trigger rescheduling
+                    if (showImage) {
+                        putExtra("image_resource", "notification_${prayerName.lowercase()}")
+                    }
                 }
                 
                 val pendingIntent = PendingIntent.getBroadcast(
@@ -132,20 +193,28 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
                     alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
                 }
             }
-            result.success(true)
-        } catch (e: Exception) {
-            result.error("SCHEDULE_ERROR", e.message, null)
         }
     }
     
     private fun handleCancelAllReminders(result: Result) {
         try {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            listOf(NOTIFICATION_ID_FAJR, NOTIFICATION_ID_DHUHR, NOTIFICATION_ID_ASR, NOTIFICATION_ID_MAGHRIB, NOTIFICATION_ID_ISHA).forEach { id ->
-                val intent = Intent(context, AlarmReceiver::class.java)
-                val pendingIntent = PendingIntent.getBroadcast(context, id, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
-                pendingIntent?.let { alarmManager.cancel(it) }
+            val baseIds = listOf(NOTIFICATION_ID_FAJR, NOTIFICATION_ID_DHUHR, NOTIFICATION_ID_ASR, NOTIFICATION_ID_MAGHRIB, NOTIFICATION_ID_ISHA)
+            
+            // Cancel all 7 days worth of alarms
+            for (dayOffset in 0 until DAYS_TO_SCHEDULE) {
+                for (baseId in baseIds) {
+                    val notificationId = getNotificationId(baseId, dayOffset)
+                    val intent = Intent(context, AlarmReceiver::class.java)
+                    val pendingIntent = PendingIntent.getBroadcast(context, notificationId, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
+                    pendingIntent?.let { alarmManager.cancel(it) }
+                }
             }
+            
+            // Clear enabled flag
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("reminders_enabled", false).apply()
+            
             result.success(true)
         } catch (e: Exception) {
             result.error("CANCEL_ERROR", e.message, null)
@@ -185,9 +254,13 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("notification_id", 999)
-            putExtra("prayer_name", "Test")
+            putExtra("prayer_name", "Fajr")  // Use Fajr to test image loading
             putExtra("title", title)
             putExtra("body", body)
+            val showImage = call.argument<Boolean>("show_image") ?: true
+            if (showImage) {
+                putExtra("image_resource", "notification_fajr")
+            }
         }
         
         context.sendBroadcast(intent)
@@ -204,9 +277,13 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("notification_id", notificationId)
-            putExtra("prayer_name", "Test Scheduled")
+            putExtra("prayer_name", "Maghrib")  // Use Maghrib to test image loading
             putExtra("title", title)
             putExtra("body", body)
+            val showImage = call.argument<Boolean>("show_image") ?: true
+            if (showImage) {
+                putExtra("image_resource", "notification_maghrib")
+            }
         }
         
         val pendingIntent = PendingIntent.getBroadcast(

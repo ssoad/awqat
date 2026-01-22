@@ -1,23 +1,30 @@
-## 0.1.3
+## 0.1.7
+- Fixed notification images: converted to proper PNG format (was JPEG with .png extension causing AAPT build failures).
 
-* Feature: Added `showTestNotification()` for immediate notification testing
-* Feature: Added `scheduleTestReminder()` for testing delayed notifications (approx 1 min)
-* Fixed: Android `AlarmReceiver` export status for better reliability
+## 0.1.6
+- Added `showImage` parameter to `scheduleReminders`, `showTestNotification`, and `scheduleTestReminder` to toggle rich notifications.
+- Added default notification images (Fajr, Dhuhr, Asr, Maghrib, Isha) to plugin resources.
+
+## 0.1.5
+- Added rich notification support for Android (big picture style).
+- Added `imageResource` parameter to `AlarmReceiver`.
+- Notifications now display full text using `setSummaryText`.
+
+## 0.1.4
+- Added consumer ProGuard rules to `android/build.gradle`.
+- Fixed `BroadcastReceiver` stripping issue in Release mode.
+
+## 0.1.3
+- Added `Awqat.cancelReminder(PrayerType)` method.
+- Improved error handling for scheduling.
 
 ## 0.1.2
-
-* Fixed: Removed external Adhan-Kotlin dependency, now uses built-in prayer time calculation algorithm
-* Fixed: No longer requires JitPack or additional Maven repositories
+- Fixed Android 12+ scheduling permission.
+- Updates documentation.
 
 ## 0.1.1
-
-* Fixed: Added JitPack and Sonatype repositories for Adhan-Kotlin dependency resolution on Android
+- iOS support for `UNNotificationCenter`.
+- Improved documentation.
 
 ## 0.1.0
-
-* Initial release
-* Native Android prayer time reminders using AlarmManager
-* Native iOS prayer time reminders using UNNotificationCenter
-* Built-in prayer time calculation with 12 methods
-* Support for Shafi and Hanafi madhab
-* Permission handling for both platforms
+- Initial release.
