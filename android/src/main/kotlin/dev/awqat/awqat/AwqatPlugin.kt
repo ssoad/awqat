@@ -271,6 +271,7 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         val seconds = call.argument<Int>("seconds") ?: 60
         val title = call.argument<String>("title") ?: "Scheduled Test"
         val body = call.argument<String>("body") ?: "This notification was scheduled $seconds seconds ago"
+        val shouldReschedule = call.argument<Boolean>("should_reschedule") ?: false
         
         val triggerTime = System.currentTimeMillis() + (seconds * 1000L)
         val notificationId = 888
@@ -280,6 +281,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
             putExtra("prayer_name", "Maghrib")  // Use Maghrib to test image loading
             putExtra("title", title)
             putExtra("body", body)
+            // Use the same should_reschedule flag as prayer reminders
+            putExtra("should_reschedule", shouldReschedule)
             val showImage = call.argument<Boolean>("show_image") ?: true
             if (showImage) {
                 putExtra("image_resource", "notification_maghrib")

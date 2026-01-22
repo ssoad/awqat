@@ -218,16 +218,21 @@ class Awqat {
   }
 
   /// Schedule a test notification after [seconds].
+  ///
+  /// If [shouldReschedule] is true, it uses the same flow as prayer reminders
+  /// (triggers PrayerScheduler after notification is shown).
   static Future<void> scheduleTestReminder({
     int seconds = 60,
     String? title,
     bool showImage = true,
+    bool shouldReschedule = true,
   }) async {
     try {
       await _channel.invokeMethod('scheduleTestReminder', {
         'seconds': seconds,
         'title': title,
         'show_image': showImage,
+        'should_reschedule': shouldReschedule,
       });
     } on PlatformException catch (e) {
       throw AwqatException('Failed to schedule test reminder: ${e.message}');

@@ -8,11 +8,8 @@ import android.content.Intent
  * BroadcastReceiver that reschedules prayer alarms after device reboot.
  * 
  * Android clears all scheduled alarms when the device reboots.
- * This receiver is triggered on boot and reschedules the reminders.
- * 
- * Note: The app must store the configuration (lat/lng, method, etc.)
- * in SharedPreferences for this to work. The actual rescheduling
- * requires the Flutter engine, so we send a message to reschedule.
+ * This receiver is triggered on boot and reschedules the reminders
+ * using saved configuration from SharedPreferences.
  */
 class BootReceiver : BroadcastReceiver() {
     
@@ -20,17 +17,25 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED ||
             intent.action == "android.intent.action.QUICKBOOT_POWERON") {
             
-            // Load stored configuration from SharedPreferences
-            val prefs = context.getSharedPreferences("awqat_prefs", Context.MODE_PRIVATE)
+            android.util.Log.d("AwqatBootReceiver", "Boot completed, checking if reminders need rescheduling")
+            
+            // Load stored configuration and reschedule using the PrayerScheduler
+            val prefs = context.getSharedPreferences(AwqatPlugin.PREFS_NAME, Context.MODE_PRIVATE)
             val isEnabled = prefs.getBoolean("reminders_enabled", false)
             
             if (isEnabled) {
-                // For now, we rely on the app being opened to reschedule.
-                // A more robust solution would store prayer times locally
-                // and reschedule using a WorkManager job.
-                
-                // Log for debugging
-                android.util.Log.d("AwqatBootReceiver", "Boot completed. Reminders need rescheduling.")
+                try {
+                    val success = PrayerScheduler.scheduleFromSavedConfig(context)
+                    if (success) {
+                        android.util.Log.d("AwqatBootReceiver", "Successfully rescheduled prayer reminders after boot")
+                    } else {
+                        android.util.Log.w("AwqatBootReceiver", "Failed to reschedule - config may be missing")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("AwqatBootReceiver", "Error rescheduling after boot: ${e.message}")
+                }
+            } else {
+                android.util.Log.d("AwqatBootReceiver", "Reminders disabled, skipping reschedule")
             }
         }
     }

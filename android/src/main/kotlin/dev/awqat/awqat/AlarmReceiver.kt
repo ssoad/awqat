@@ -22,8 +22,19 @@ class AlarmReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra("title") ?: "Time for $prayerName"
         val body = intent.getStringExtra("body") ?: "It's time for $prayerName prayer"
         val imageResource = intent.getStringExtra("image_resource")
+        val shouldReschedule = intent.getBooleanExtra("should_reschedule", false)
         
+        // Show the notification
         showNotification(context, notificationId, title, body, prayerName, imageResource)
+        
+        // Reschedule reminders for the next 7 days to ensure continuous notifications
+        if (shouldReschedule) {
+            try {
+                PrayerScheduler.scheduleFromSavedConfig(context)
+            } catch (e: Exception) {
+                android.util.Log.e("AlarmReceiver", "Failed to reschedule: ${e.message}")
+            }
+        }
     }
     
     private fun showNotification(
