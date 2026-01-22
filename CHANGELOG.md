@@ -1,3 +1,11 @@
+## 0.1.8
+- **Major Reliability Update**: Native 7-day scheduling for Android.
+- Added automatic re-scheduling after each notification to ensure continuous reminders.
+- Fixed `BootReceiver` to properly reschedule alarms after device reboot.
+- Added `Persistence`: Configuration is now saved natively in SharedPreferences.
+- Added `PrayerScheduler` utility for reliable background scheduling.
+- Updated `scheduleTestReminder` to support testing the full re-scheduling flow.
+
 ## 0.1.7
 - Fixed notification images: converted to proper PNG format (was JPEG with .png extension causing AAPT build failures).
 
