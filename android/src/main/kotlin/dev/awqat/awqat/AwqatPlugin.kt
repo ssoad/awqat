@@ -299,11 +299,23 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         val triggerTime = System.currentTimeMillis() + (seconds * 1000L)
         val notificationId = 888
         
+        // Check for saved random messages
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val savedMessages = prefs.getString("random_messages", null)
+        var notificationBody = body
+        
+        if (savedMessages != null && savedMessages.isNotEmpty()) {
+            val messageList = savedMessages.split("|#|")
+            if (messageList.isNotEmpty()) {
+                notificationBody = messageList.random()
+            }
+        }
+        
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("notification_id", notificationId)
             putExtra("prayer_name", "Maghrib")  // Use Maghrib to test image loading
             putExtra("title", title)
-            putExtra("body", body)
+            putExtra("body", notificationBody)
             // Use the same should_reschedule flag as prayer reminders
             putExtra("should_reschedule", shouldReschedule)
             val showImage = call.argument<Boolean>("show_image") ?: true
