@@ -1,6 +1,6 @@
 name: awqat
 description: "Native prayer time reminders for Flutter. Uses platform-native AlarmManager (Android) and UNNotificationCenter (iOS) for reliable, battery-efficient Islamic prayer notifications."
-version: 0.1.9
+version: 0.1.10
 homepage: https://github.com/ssoad/awqat
 repository: https://github.com/ssoad/awqat
 issue_tracker: https://github.com/ssoad/awqat/issues

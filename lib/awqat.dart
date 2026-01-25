@@ -118,6 +118,7 @@ class Awqat {
     String? body,
     String? sound,
     bool showImage = true,
+    List<String>? messages,
   }) async {
     _ensureInitialized();
 
@@ -139,6 +140,7 @@ class Awqat {
         'body': body,
         'sound': sound,
         'show_image': showImage,
+        'messages': messages,
       });
     } on PlatformException catch (e) {
       throw AwqatException('Failed to schedule reminders: ${e.message}');

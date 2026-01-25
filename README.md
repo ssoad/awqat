@@ -45,6 +45,7 @@ print('Next Prayer: ${times.nextPrayer()}');
 await Awqat.scheduleReminders(
   prayers: [PrayerType.fajr, PrayerType.dhuhr, PrayerType.asr],
   offsetMinutes: -5, // 5 minutes before
+  messages: ["Prayer is better than sleep", "Come to prayer"], // Optional: Random messages
 );
 ```
 

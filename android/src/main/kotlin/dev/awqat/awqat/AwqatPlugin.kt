@@ -107,6 +107,7 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
             val customTitle = call.argument<String>("title")
             val customBody = call.argument<String>("body")
             val showImage = call.argument<Boolean>("show_image") ?: true
+            val messages = call.argument<List<String>>("messages")
             
             // Persist configuration to SharedPreferences for re-use
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -121,11 +122,20 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
                 putBoolean("show_image", showImage)
                 customTitle?.let { putString("custom_title", it) }
                 customBody?.let { putString("custom_body", it) }
+                
+                // Save messages list
+                if (messages != null && messages.isNotEmpty()) {
+                    // Use a unique separator that's unlikely to be in the message
+                    putString("random_messages", messages.joinToString("|#|"))
+                } else {
+                    remove("random_messages")
+                }
+                
                 apply()
             }
             
             // Schedule for next 7 days
-            scheduleForDays(prayers, offsetMinutes, customTitle, customBody, showImage)
+            scheduleForDays(prayers, offsetMinutes, customTitle, customBody, showImage, messages)
             
             result.success(true)
         } catch (e: Exception) {
@@ -142,7 +152,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         offsetMinutes: Int,
         customTitle: String?,
         customBody: String?,
-        showImage: Boolean
+        showImage: Boolean,
+        messages: List<String>? = null
     ) {
         android.util.Log.d("AwqatPlugin", "scheduleForDays: Scheduling for next $DAYS_TO_SCHEDULE days")
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -171,11 +182,17 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
                 
                 val notificationId = getNotificationId(basePrayerId, dayOffset)
                 
+                // Determine notification body
+                var notificationBody = customBody ?: "It's time for $prayerName prayer"
+                if (messages != null && messages.isNotEmpty()) {
+                    notificationBody = messages.random()
+                }
+                
                 val intent = Intent(context, AlarmReceiver::class.java).apply {
                     putExtra("notification_id", notificationId)
                     putExtra("prayer_name", prayerName)
                     putExtra("title", customTitle ?: "Time for $prayerName")
-                    putExtra("body", customBody ?: "It's time for $prayerName prayer")
+                    putExtra("body", notificationBody)
                     putExtra("should_reschedule", true) // Flag to trigger rescheduling
                     if (showImage) {
                         putExtra("image_resource", "notification_${prayerName.lowercase()}")

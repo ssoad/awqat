@@ -1,3 +1,7 @@
+## 0.1.10
+- Added `messages` parameter in `scheduleReminders` to show random religious messages in notification body.
+- Updated `PrayerScheduler` (Android) to support rotating messages for each notification.
+
 ## 0.1.9
 - **Debugging**: Added verbose logs to `AwqatPlugin`, `AlarmReceiver`, and `PrayerScheduler` to verify scheduling via `adb logcat`.
 

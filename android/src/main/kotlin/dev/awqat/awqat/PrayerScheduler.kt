@@ -45,6 +45,7 @@ object PrayerScheduler {
         val showImage = prefs.getBoolean("show_image", true)
         val customTitle = prefs.getString("custom_title", null)
         val customBody = prefs.getString("custom_body", null)
+        val messagesStr = prefs.getString("random_messages", null)
         
         if (prayersStr.isEmpty() || latitude == 0.0 && longitude == 0.0) {
             android.util.Log.d("PrayerScheduler", "No prayers configured or invalid location")
@@ -52,6 +53,7 @@ object PrayerScheduler {
         }
         
         val prayers = prayersStr.split(",").filter { it.isNotEmpty() }
+        val messages = messagesStr?.split("|#|")?.filter { it.isNotEmpty() }
         
         scheduleForDays(
             context = context,
@@ -63,7 +65,8 @@ object PrayerScheduler {
             offsetMinutes = offsetMinutes,
             customTitle = customTitle,
             customBody = customBody,
-            showImage = showImage
+            showImage = showImage,
+            messages = messages
         )
         
         android.util.Log.d("PrayerScheduler", "Scheduled ${prayers.size} prayers for ${AwqatPlugin.DAYS_TO_SCHEDULE} days")
@@ -83,7 +86,8 @@ object PrayerScheduler {
         offsetMinutes: Int,
         customTitle: String?,
         customBody: String?,
-        showImage: Boolean
+        showImage: Boolean,
+        messages: List<String>? = null
     ) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val now = System.currentTimeMillis()
@@ -111,11 +115,17 @@ object PrayerScheduler {
                 
                 val notificationId = AwqatPlugin.getNotificationId(basePrayerId, dayOffset)
                 
+                // Determine notification body
+                var notificationBody = customBody ?: "It's time for $prayerName prayer"
+                if (messages != null && messages.isNotEmpty()) {
+                    notificationBody = messages.random()
+                }
+
                 val intent = Intent(context, AlarmReceiver::class.java).apply {
                     putExtra("notification_id", notificationId)
                     putExtra("prayer_name", prayerName)
                     putExtra("title", customTitle ?: "Time for $prayerName")
-                    putExtra("body", customBody ?: "It's time for $prayerName prayer")
+                    putExtra("body", notificationBody)
                     putExtra("should_reschedule", true)
                     if (showImage) {
                         putExtra("image_resource", "notification_${prayerName.lowercase()}")
