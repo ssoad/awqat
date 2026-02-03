@@ -204,15 +204,9 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (alarmManager.canScheduleExactAlarms()) {
-                        alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
-                    } else {
-                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-                    }
-                } else {
-                    alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
-                }
+                // Always use setAlarmClock - works reliably without SCHEDULE_EXACT_ALARM permission
+                // and wakes device even in Doze mode (alarm clock icon may appear in status bar)
+                alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
             }
         }
     }
@@ -331,15 +325,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-            }
-        } else {
-            alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
-        }
+        // Always use setAlarmClock for reliable alarm delivery
+        alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
         
         result.success(true)
     }
