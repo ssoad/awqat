@@ -137,9 +137,18 @@ object PrayerScheduler {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 
-                // Always use setAlarmClock - works reliably without SCHEDULE_EXACT_ALARM permission
-                // and wakes device even in Doze mode (alarm clock icon may appear in status bar)
-                alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
+                // Use setExactAndAllowWhileIdle when permission is granted (no status bar icon)
+                // Fall back to setAlarmClock only if permission denied (shows alarm icon but works)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (alarmManager.canScheduleExactAlarms()) {
+                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                    } else {
+                        // Fallback: setAlarmClock doesn't require permission but shows alarm icon
+                        alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerTime, pendingIntent), pendingIntent)
+                    }
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                }
             }
         }
     }
