@@ -1,6 +1,8 @@
 package dev.awqat.awqat
 
+import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.os.Build
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -27,6 +29,9 @@ class AlarmReceiver : BroadcastReceiver() {
         val imageResource = intent.getStringExtra("image_resource")
         val shouldReschedule = intent.getBooleanExtra("should_reschedule", false)
         
+        // Ensure notification channel exists (critical for release builds)
+        ensureNotificationChannel(context)
+        
         // Show the notification
         showNotification(context, notificationId, title, body, prayerName, imageResource)
         
@@ -37,6 +42,37 @@ class AlarmReceiver : BroadcastReceiver() {
             } catch (e: Exception) {
                 android.util.Log.e("AlarmReceiver", "Failed to reschedule: ${e.message}")
             }
+        }
+    }
+    
+    /**
+     * Ensure the notification channel exists.
+     * This is critical because in release builds, the app may be killed and
+     * the AwqatPlugin.onAttachedToEngine may never have been called.
+     */
+    private fun ensureNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            // Check if channel already exists
+            val existingChannel = notificationManager.getNotificationChannel(AwqatPlugin.CHANNEL_ID)
+            if (existingChannel != null) {
+                android.util.Log.d("AlarmReceiver", "Notification channel already exists")
+                return
+            }
+            
+            // Create the channel
+            val channel = NotificationChannel(
+                AwqatPlugin.CHANNEL_ID,
+                AwqatPlugin.CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Prayer time reminders"
+                enableVibration(true)
+                enableLights(true)
+            }
+            notificationManager.createNotificationChannel(channel)
+            android.util.Log.d("AlarmReceiver", "Created notification channel: " + AwqatPlugin.CHANNEL_ID)
         }
     }
     
