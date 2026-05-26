@@ -13,12 +13,14 @@
 - 📱 **Cross Platform** - Full support for Android and iOS
 - 🌍 **12 Calculation Methods** - Muslim World League, Egyptian, Karachi, Umm Al-Qura, and more
 - 🕋 **Madhab Support** - Shafi and Hanafi Asr calculation
+- 🕌 **Jumuah Support** - Friday noon prayer can be labeled as Jumuah
+- 🔊 **Adhan Sound Controls** - Built-in `adhan` sound with toggle and custom sound name support
 
 ## 📦 Installation
 
 ```yaml
 dependencies:
-  awqat: ^0.1.0
+  awqat: ^0.1.13
 ```
 
 ## 🚀 Quick Start
@@ -45,7 +47,15 @@ print('Next Prayer: ${times.nextPrayer()}');
 await Awqat.scheduleReminders(
   prayers: [PrayerType.fajr, PrayerType.dhuhr, PrayerType.asr],
   offsetMinutes: -5, // 5 minutes before
+  playSound: true,
+  sound: 'adhan',
   messages: ["Prayer is better than sleep", "Come to prayer"], // Optional: Random messages
+);
+
+// 4. Get all prayer slots for a date (Friday-aware Jumuah label)
+final all = await Awqat.getAllPrayerTimes(
+  includeSunrise: true,
+  includeJumuahOnFriday: true,
 );
 ```
 
@@ -117,6 +127,8 @@ final times = await Awqat.getPrayerTimes(date: DateTime.now());
 await Awqat.scheduleReminders(
   prayers: [PrayerType.fajr],
   offsetMinutes: -5,
+  playSound: true,
+  sound: 'adhan',
 );
 
 // Cancel reminders

@@ -6,6 +6,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -31,6 +33,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
     companion object {
         const val CHANNEL_ID = "awqat_prayer_reminders"
         const val CHANNEL_NAME = "Prayer Reminders"
+        const val CHANNEL_ID_SILENT = "awqat_prayer_reminders_silent"
+        const val DEFAULT_SOUND_NAME = "adhan"
         const val PREFS_NAME = "awqat_prefs"
         
         // Base notification IDs for each prayer (Day 0)
@@ -106,6 +110,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
             val offsetMinutes = call.argument<Int>("offsetMinutes") ?: 0
             val customTitle = call.argument<String>("title")
             val customBody = call.argument<String>("body")
+            val playSound = call.argument<Boolean>("play_sound") ?: true
+            val soundName = call.argument<String>("sound") ?: DEFAULT_SOUND_NAME
             val showImage = call.argument<Boolean>("show_image") ?: true
             val messages = call.argument<List<String>>("messages")
             
@@ -119,6 +125,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
                 putString("prayers", prayers.joinToString(","))
                 putInt("offset_minutes", offsetMinutes)
                 putBoolean("reminders_enabled", prayers.isNotEmpty())
+                putBoolean("play_sound", playSound)
+                putString("sound", soundName)
                 putBoolean("show_image", showImage)
                 customTitle?.let { putString("custom_title", it) }
                 customBody?.let { putString("custom_body", it) }
@@ -134,8 +142,10 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
                 apply()
             }
             
+            createNotificationChannels(soundName)
+
             // Schedule for next 7 days
-            scheduleForDays(prayers, offsetMinutes, customTitle, customBody, showImage, messages)
+            scheduleForDays(prayers, offsetMinutes, customTitle, customBody, playSound, soundName, showImage, messages)
             
             result.success(true)
         } catch (e: Exception) {
@@ -152,6 +162,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         offsetMinutes: Int,
         customTitle: String?,
         customBody: String?,
+        playSound: Boolean,
+        soundName: String,
         showImage: Boolean,
         messages: List<String>? = null
     ) {
@@ -193,6 +205,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
                     putExtra("prayer_name", prayerName)
                     putExtra("title", customTitle ?: "Time for $prayerName")
                     putExtra("body", notificationBody)
+                    putExtra("play_sound", playSound)
+                    putExtra("sound", soundName)
                     putExtra("should_reschedule", true) // Flag to trigger rescheduling
                     if (showImage) {
                         putExtra("image_resource", "notification_${prayerName.lowercase()}")
@@ -354,14 +368,35 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
     }
     
     private fun createNotificationChannel() {
+        createNotificationChannels(DEFAULT_SOUND_NAME)
+    }
+
+    internal fun createNotificationChannels(soundName: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            val normalizedSoundName = soundName.trim().ifEmpty { DEFAULT_SOUND_NAME }
+
+            val soundChannel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "Prayer time reminders"
                 enableVibration(true)
                 enableLights(true)
+                val soundUri = Uri.parse("android.resource://${context.packageName}/raw/$normalizedSoundName")
+                val audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+                setSound(soundUri, audioAttributes)
             }
-            val notificationManager = context.getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+
+            val silentChannel = NotificationChannel(CHANNEL_ID_SILENT, "$CHANNEL_NAME (Silent)", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Prayer reminders without sound"
+                enableVibration(true)
+                enableLights(true)
+                setSound(null, null)
+            }
+
+            notificationManager.createNotificationChannel(soundChannel)
+            notificationManager.createNotificationChannel(silentChannel)
         }
     }
     

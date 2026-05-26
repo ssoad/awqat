@@ -44,6 +44,7 @@ class PrayerTimes {
       case PrayerType.sunrise:
         return sunrise;
       case PrayerType.dhuhr:
+      case PrayerType.jumuah:
         return dhuhr;
       case PrayerType.asr:
         return asr;
@@ -57,6 +58,7 @@ class PrayerTimes {
   /// Get the current or next prayer based on the current time
   PrayerType currentPrayer([DateTime? now]) {
     final currentTime = now ?? DateTime.now();
+    final isFriday = date.weekday == DateTime.friday;
 
     if (currentTime.isBefore(fajr)) {
       return PrayerType.isha; // Previous day's Isha
@@ -65,7 +67,7 @@ class PrayerTimes {
     } else if (currentTime.isBefore(dhuhr)) {
       return PrayerType.sunrise;
     } else if (currentTime.isBefore(asr)) {
-      return PrayerType.dhuhr;
+      return isFriday ? PrayerType.jumuah : PrayerType.dhuhr;
     } else if (currentTime.isBefore(maghrib)) {
       return PrayerType.asr;
     } else if (currentTime.isBefore(isha)) {
@@ -78,13 +80,14 @@ class PrayerTimes {
   /// Get the next upcoming prayer
   PrayerType nextPrayer([DateTime? now]) {
     final currentTime = now ?? DateTime.now();
+    final isFriday = date.weekday == DateTime.friday;
 
     if (currentTime.isBefore(fajr)) {
       return PrayerType.fajr;
     } else if (currentTime.isBefore(sunrise)) {
       return PrayerType.sunrise;
     } else if (currentTime.isBefore(dhuhr)) {
-      return PrayerType.dhuhr;
+      return isFriday ? PrayerType.jumuah : PrayerType.dhuhr;
     } else if (currentTime.isBefore(asr)) {
       return PrayerType.asr;
     } else if (currentTime.isBefore(maghrib)) {
@@ -108,6 +111,31 @@ class PrayerTimes {
       // Next prayer is tomorrow's Fajr
       return nextTime.add(const Duration(days: 1)).difference(currentTime);
     }
+  }
+
+  /// Returns all daily prayer slots in chronological order.
+  ///
+  /// When [includeJumuahOnFriday] is true, Friday noon is labeled as Jumuah.
+  List<({PrayerType type, DateTime time})> allPrayerTimes({
+    bool includeSunrise = true,
+    bool includeJumuahOnFriday = true,
+  }) {
+    final isFriday = includeJumuahOnFriday && date.weekday == DateTime.friday;
+    final dhuhrLike = isFriday ? PrayerType.jumuah : PrayerType.dhuhr;
+
+    final result = <({PrayerType type, DateTime time})>[
+      (type: PrayerType.fajr, time: fajr),
+      (type: dhuhrLike, time: dhuhr),
+      (type: PrayerType.asr, time: asr),
+      (type: PrayerType.maghrib, time: maghrib),
+      (type: PrayerType.isha, time: isha),
+    ];
+
+    if (includeSunrise) {
+      result.insert(1, (type: PrayerType.sunrise, time: sunrise));
+    }
+
+    return result;
   }
 
   /// Create from Map (from platform channel)

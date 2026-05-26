@@ -42,6 +42,8 @@ object PrayerScheduler {
         val madhabId = prefs.getString("madhab", "shafi") ?: "shafi"
         val prayersStr = prefs.getString("prayers", "") ?: ""
         val offsetMinutes = prefs.getInt("offset_minutes", 0)
+        val playSound = prefs.getBoolean("play_sound", true)
+        val soundName = prefs.getString("sound", AwqatPlugin.DEFAULT_SOUND_NAME) ?: AwqatPlugin.DEFAULT_SOUND_NAME
         val showImage = prefs.getBoolean("show_image", true)
         val customTitle = prefs.getString("custom_title", null)
         val customBody = prefs.getString("custom_body", null)
@@ -65,6 +67,8 @@ object PrayerScheduler {
             offsetMinutes = offsetMinutes,
             customTitle = customTitle,
             customBody = customBody,
+            playSound = playSound,
+            soundName = soundName,
             showImage = showImage,
             messages = messages
         )
@@ -86,6 +90,8 @@ object PrayerScheduler {
         offsetMinutes: Int,
         customTitle: String?,
         customBody: String?,
+        playSound: Boolean,
+        soundName: String,
         showImage: Boolean,
         messages: List<String>? = null
     ) {
@@ -126,6 +132,8 @@ object PrayerScheduler {
                     putExtra("prayer_name", prayerName)
                     putExtra("title", customTitle ?: "Time for $prayerName")
                     putExtra("body", notificationBody)
+                    putExtra("play_sound", playSound)
+                    putExtra("sound", soundName)
                     putExtra("should_reschedule", true)
                     if (showImage) {
                         putExtra("image_resource", "notification_${prayerName.lowercase()}")

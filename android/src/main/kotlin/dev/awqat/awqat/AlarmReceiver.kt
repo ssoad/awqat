@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.AudioAttributes
+import android.net.Uri
 import androidx.core.app.NotificationCompat
 
 /**
@@ -27,13 +29,15 @@ class AlarmReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra("title") ?: "Time for $prayerName"
         val body = intent.getStringExtra("body") ?: "It's time for $prayerName prayer"
         val imageResource = intent.getStringExtra("image_resource")
+        val playSound = intent.getBooleanExtra("play_sound", true)
+        val soundName = intent.getStringExtra("sound") ?: AwqatPlugin.DEFAULT_SOUND_NAME
         val shouldReschedule = intent.getBooleanExtra("should_reschedule", false)
         
         // Ensure notification channel exists (critical for release builds)
-        ensureNotificationChannel(context)
+        ensureNotificationChannel(context, soundName)
         
         // Show the notification
-        showNotification(context, notificationId, title, body, prayerName, imageResource)
+        showNotification(context, notificationId, title, body, prayerName, imageResource, playSound, soundName)
         
         // Reschedule reminders for the next 7 days to ensure continuous notifications
         if (shouldReschedule) {
@@ -50,19 +54,18 @@ class AlarmReceiver : BroadcastReceiver() {
      * This is critical because in release builds, the app may be killed and
      * the AwqatPlugin.onAttachedToEngine may never have been called.
      */
-    private fun ensureNotificationChannel(context: Context) {
+    private fun ensureNotificationChannel(context: Context, soundName: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            
-            // Check if channel already exists
-            val existingChannel = notificationManager.getNotificationChannel(AwqatPlugin.CHANNEL_ID)
-            if (existingChannel != null) {
-                android.util.Log.d("AlarmReceiver", "Notification channel already exists")
-                return
-            }
-            
-            // Create the channel
-            val channel = NotificationChannel(
+
+            val normalizedSoundName = soundName.trim().ifEmpty { AwqatPlugin.DEFAULT_SOUND_NAME }
+            val soundUri = Uri.parse("android.resource://${context.packageName}/raw/$normalizedSoundName")
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+
+            val soundChannel = NotificationChannel(
                 AwqatPlugin.CHANNEL_ID,
                 AwqatPlugin.CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
@@ -70,9 +73,22 @@ class AlarmReceiver : BroadcastReceiver() {
                 description = "Prayer time reminders"
                 enableVibration(true)
                 enableLights(true)
+                setSound(soundUri, audioAttributes)
             }
-            notificationManager.createNotificationChannel(channel)
-            android.util.Log.d("AlarmReceiver", "Created notification channel: " + AwqatPlugin.CHANNEL_ID)
+
+            val silentChannel = NotificationChannel(
+                AwqatPlugin.CHANNEL_ID_SILENT,
+                "${AwqatPlugin.CHANNEL_NAME} (Silent)",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Prayer reminders without sound"
+                enableVibration(true)
+                enableLights(true)
+                setSound(null, null)
+            }
+
+            notificationManager.createNotificationChannel(soundChannel)
+            notificationManager.createNotificationChannel(silentChannel)
         }
     }
     
@@ -82,7 +98,9 @@ class AlarmReceiver : BroadcastReceiver() {
         title: String,
         body: String,
         prayerName: String,
-        imageResource: String?
+        imageResource: String?,
+        playSound: Boolean,
+        soundName: String
     ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
@@ -92,7 +110,8 @@ class AlarmReceiver : BroadcastReceiver() {
         // Try to load prayer-specific image
         val prayerImage = loadPrayerImage(context, prayerName, imageResource)
         
-        val builder = NotificationCompat.Builder(context, AwqatPlugin.CHANNEL_ID)
+        val channelId = if (playSound) AwqatPlugin.CHANNEL_ID else AwqatPlugin.CHANNEL_ID_SILENT
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(appIcon)
             .setContentTitle(title)
             .setContentText(body)
@@ -100,7 +119,18 @@ class AlarmReceiver : BroadcastReceiver() {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
+
+        if (playSound) {
+            builder.setDefaults(NotificationCompat.DEFAULT_ALL)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                val normalizedSoundName = soundName.trim().ifEmpty { AwqatPlugin.DEFAULT_SOUND_NAME }
+                val soundUri = Uri.parse("android.resource://${context.packageName}/raw/$normalizedSoundName")
+                builder.setSound(soundUri)
+            }
+        } else {
+            builder.setSilent(true)
+            builder.setDefaults(NotificationCompat.DEFAULT_LIGHTS)
+        }
         
         // Use BigPictureStyle with image, falling back to BigTextStyle
         if (prayerImage != null) {

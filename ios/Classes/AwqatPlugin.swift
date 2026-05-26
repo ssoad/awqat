@@ -90,6 +90,8 @@ public class AwqatPlugin: NSObject, FlutterPlugin {
         let offsetMinutes = args["offsetMinutes"] as? Int ?? 0
         let customTitle = args["title"] as? String
         let customBody = args["body"] as? String
+        let playSound = args["play_sound"] as? Bool ?? true
+        let soundName = args["sound"] as? String
         
         let date = Date()
         let times = calculatePrayerTimes(date: date)
@@ -112,7 +114,7 @@ public class AwqatPlugin: NSObject, FlutterPlugin {
             let content = UNMutableNotificationContent()
             content.title = title
             content.body = body
-            content.sound = .default
+            content.sound = resolveNotificationSound(playSound: playSound, soundName: soundName)
             content.categoryIdentifier = "PRAYER_REMINDER"
             
             let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: triggerDate)
@@ -168,6 +170,30 @@ public class AwqatPlugin: NSObject, FlutterPlugin {
                 result(settings.authorizationStatus == .authorized)
             }
         }
+    }
+
+    private func resolveNotificationSound(playSound: Bool, soundName: String?) -> UNNotificationSound? {
+        guard playSound else { return nil }
+
+        let trimmed = (soundName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return .default
+        }
+
+        if trimmed.contains(".") {
+            return UNNotificationSound(named: UNNotificationSoundName(rawValue: trimmed))
+        }
+
+        let candidates = ["caf", "wav", "aiff"]
+        let pluginBundle = Bundle(for: AwqatPlugin.self)
+        for ext in candidates {
+            if Bundle.main.path(forResource: trimmed, ofType: ext) != nil ||
+                pluginBundle.path(forResource: trimmed, ofType: ext) != nil {
+                return UNNotificationSound(named: UNNotificationSoundName(rawValue: "\(trimmed).\(ext)"))
+            }
+        }
+
+        return .default
     }
     
     // MARK: - Prayer Time Calculation

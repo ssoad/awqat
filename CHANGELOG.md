@@ -1,3 +1,10 @@
+## 0.1.13
+- Added `PrayerType.jumuah` with Friday-aware noon prayer labeling.
+- Added `PrayerTimes.allPrayerTimes(...)` helper and public `Awqat.getAllPrayerTimes(...)`.
+- Added reminder sound controls: `playSound` and `sound` in `Awqat.scheduleReminders(...)`.
+- Added native custom sound routing for Android and iOS notifications.
+- Added bundled Adhan sound resources for notifications (`adhan` sound name).
+
 ## 0.1.10
 - Added `messages` parameter in `scheduleReminders` to show random religious messages in notification body.
 - Updated `PrayerScheduler` (Android) to support rotating messages for each notification.

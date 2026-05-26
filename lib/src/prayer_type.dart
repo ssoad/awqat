@@ -9,6 +9,9 @@ enum PrayerType {
   /// Noon prayer
   dhuhr,
 
+  /// Friday congregational noon prayer (same time slot as Dhuhr)
+  jumuah,
+
   /// Afternoon prayer
   asr,
 
@@ -29,6 +32,9 @@ extension PrayerTypeExtension on PrayerType {
         return 'sunrise';
       case PrayerType.dhuhr:
         return 'dhuhr';
+      case PrayerType.jumuah:
+        // Native schedulers and platform logic use dhuhr identifier.
+        return 'dhuhr';
       case PrayerType.asr:
         return 'asr';
       case PrayerType.maghrib:
@@ -47,6 +53,8 @@ extension PrayerTypeExtension on PrayerType {
         return 'الشروق';
       case PrayerType.dhuhr:
         return 'الظهر';
+      case PrayerType.jumuah:
+        return 'الجمعة';
       case PrayerType.asr:
         return 'العصر';
       case PrayerType.maghrib:
@@ -64,6 +72,8 @@ extension PrayerTypeExtension on PrayerType {
         return PrayerType.sunrise;
       case 'dhuhr':
         return PrayerType.dhuhr;
+      case 'jumuah':
+        return PrayerType.jumuah;
       case 'asr':
         return PrayerType.asr;
       case 'maghrib':

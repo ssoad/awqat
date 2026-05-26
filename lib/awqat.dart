@@ -102,6 +102,22 @@ class Awqat {
     }
   }
 
+  /// Get all prayer slots for a date in chronological order.
+  ///
+  /// This is a convenience wrapper around [getPrayerTimes] +
+  /// [PrayerTimes.allPrayerTimes].
+  static Future<List<({PrayerType type, DateTime time})>> getAllPrayerTimes({
+    DateTime? date,
+    bool includeSunrise = true,
+    bool includeJumuahOnFriday = true,
+  }) async {
+    final times = await getPrayerTimes(date: date);
+    return times.allPrayerTimes(
+      includeSunrise: includeSunrise,
+      includeJumuahOnFriday: includeJumuahOnFriday,
+    );
+  }
+
   /// Schedule native reminders for the specified prayers.
   ///
   /// - [prayers]: List of prayers to schedule notifications for.
@@ -117,6 +133,7 @@ class Awqat {
     String? title,
     String? body,
     String? sound,
+    bool playSound = true,
     bool showImage = true,
     List<String>? messages,
   }) async {
@@ -139,6 +156,7 @@ class Awqat {
         'title': title,
         'body': body,
         'sound': sound,
+        'play_sound': playSound,
         'show_image': showImage,
         'messages': messages,
       });
