@@ -224,12 +224,16 @@ class Awqat {
   static Future<void> showTestNotification({
     String? title,
     String? body,
+    bool playSound = true,
+    String? sound,
     bool showImage = true,
   }) async {
     try {
       await _channel.invokeMethod('showTestNotification', {
         'title': title,
         'body': body,
+        'play_sound': playSound,
+        'sound': sound,
         'show_image': showImage,
       });
     } on PlatformException catch (e) {
@@ -244,6 +248,9 @@ class Awqat {
   static Future<void> scheduleTestReminder({
     int seconds = 60,
     String? title,
+    String? body,
+    bool playSound = true,
+    String? sound,
     bool showImage = true,
     bool shouldReschedule = true,
   }) async {
@@ -251,6 +258,9 @@ class Awqat {
       await _channel.invokeMethod('scheduleTestReminder', {
         'seconds': seconds,
         'title': title,
+        'body': body,
+        'play_sound': playSound,
+        'sound': sound,
         'show_image': showImage,
         'should_reschedule': shouldReschedule,
       });

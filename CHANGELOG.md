@@ -1,3 +1,8 @@
+## 0.1.14
+- Fixed test notification APIs to pass `playSound` and `sound` through to native layers.
+- Fixed Android test reminder (`scheduleTestReminder`) to apply Adhan sound settings.
+- Updated Android notification channel IDs to new `v2` channels to avoid stale channel sound configs from older installs.
+
 ## 0.1.13
 - Added `PrayerType.jumuah` with Friday-aware noon prayer labeling.
 - Added `PrayerTimes.allPrayerTimes(...)` helper and public `Awqat.getAllPrayerTimes(...)`.

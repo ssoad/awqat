@@ -31,9 +31,9 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
     private var madhabId: String = "shafi"
     
     companion object {
-        const val CHANNEL_ID = "awqat_prayer_reminders"
+        const val CHANNEL_ID = "awqat_prayer_reminders_v2"
         const val CHANNEL_NAME = "Prayer Reminders"
-        const val CHANNEL_ID_SILENT = "awqat_prayer_reminders_silent"
+        const val CHANNEL_ID_SILENT = "awqat_prayer_reminders_silent_v2"
         const val DEFAULT_SOUND_NAME = "adhan"
         const val PREFS_NAME = "awqat_prefs"
         
@@ -289,12 +289,18 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
     private fun handleShowTestNotification(call: MethodCall, result: Result) {
         val title = call.argument<String>("title") ?: "Test Notification"
         val body = call.argument<String>("body") ?: "This is a test prayer notification"
+        val playSound = call.argument<Boolean>("play_sound") ?: true
+        val soundName = call.argument<String>("sound") ?: DEFAULT_SOUND_NAME
+
+        createNotificationChannels(soundName)
         
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("notification_id", 999)
             putExtra("prayer_name", "Fajr")  // Use Fajr to test image loading
             putExtra("title", title)
             putExtra("body", body)
+            putExtra("play_sound", playSound)
+            putExtra("sound", soundName)
             val showImage = call.argument<Boolean>("show_image") ?: true
             if (showImage) {
                 putExtra("image_resource", "notification_fajr")
@@ -310,6 +316,10 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
         val title = call.argument<String>("title") ?: "Scheduled Test"
         val body = call.argument<String>("body") ?: "This notification was scheduled $seconds seconds ago"
         val shouldReschedule = call.argument<Boolean>("should_reschedule") ?: false
+        val playSound = call.argument<Boolean>("play_sound") ?: true
+        val soundName = call.argument<String>("sound") ?: DEFAULT_SOUND_NAME
+
+        createNotificationChannels(soundName)
         
         android.util.Log.d("AwqatPlugin", "Scheduling test alarm for $seconds seconds from now (reschedule: $shouldReschedule)")
         
@@ -333,6 +343,8 @@ class AwqatPlugin : FlutterPlugin, MethodCallHandler {
             putExtra("prayer_name", "Maghrib")  // Use Maghrib to test image loading
             putExtra("title", title)
             putExtra("body", notificationBody)
+            putExtra("play_sound", playSound)
+            putExtra("sound", soundName)
             // Use the same should_reschedule flag as prayer reminders
             putExtra("should_reschedule", shouldReschedule)
             val showImage = call.argument<Boolean>("show_image") ?: true
