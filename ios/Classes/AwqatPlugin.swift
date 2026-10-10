@@ -211,7 +211,7 @@ public class AwqatPlugin: NSObject, FlutterPlugin {
         let jd = julianDate(year: components.year!, month: components.month!, day: components.day!)
         
         // Calculate prayer times
-        let timezone = TimeZone.current.secondsFromGMT() / 3600.0
+        let timezone = Double(TimeZone.current.secondsFromGMT()) / 3600.0
         
         let fajr = computePrayerTime(jd: jd, latitude: latitude, longitude: longitude, angle: fajrAngle, timezone: timezone, isFajr: true)
         let sunrise = computeSunrise(jd: jd, latitude: latitude, longitude: longitude, timezone: timezone)
